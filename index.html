@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuizMaster Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .gradient-border {
+            position: relative;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 2px;
+        }
+
+        .gradient-border::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 20px;
+            padding: 2px;
+            background: linear-gradient(135deg, #667eea, #764ba2, #f093fb, #4facfe);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            opacity: 0.8;
+        }
+
+        .inner-content {
+            background: linear-gradient(135deg, rgba(15, 12, 41, 0.95), rgba(36, 36, 62, 0.95));
+            border-radius: 18px;
+            padding: 2rem;
+        }
+
+        .category-card {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.15));
+            border: 2px solid transparent;
+            border-radius: 16px;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .category-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .category-card:hover {
+            transform: translateY(-4px);
+            border-color: #667eea;
+            box-shadow: 0 20px 40px rgba(102, 126, 234, 0.3);
+        }
+
+        .category-card:hover::before {
+            opacity: 0.1;
+        }
+
+        .category-card > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        .option-btn {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            text-align: left;
+        }
+
+        .option-btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .option-btn:hover:not(.correct):not(.wrong):not(.disabled) {
+            border-color: #667eea;
+            transform: translateX(8px);
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.2);
+        }
+
+        .option-btn:hover:not(.correct):not(.wrong):not(.disabled)::before {
+            opacity: 0.15;
+        }
+
+        .option-btn > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        .option-btn.correct {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.2));
+            border-color: #10b981;
+            animation: correctPulse 0.6s ease-out;
+        }
+
+        .option-btn.wrong {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.2));
+            border-color: #ef4444;
+            animation: wrongShake 0.5s ease-out;
+        }
+
+        .option-btn.disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        @keyframes correctPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+
+        @keyframes wrongShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
+        }
+
+        .progress-bar {
+            background: rgba(102, 126, 234, 0.2);
+            height: 8px;
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
+            height: 100%;
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .timer {
+            font-size: 3rem;
+            font-weight: 700;
+            transition: color 0.3s ease;
+        }
+
+        .timer.urgent {
+            color: #ef4444;
+            animation: timerPulse 0.5s infinite;
+        }
+
+        @keyframes timerPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .slide-up {
+            animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 16px;
+            padding: 2rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 12px;
+            padding: 1rem 2.5rem;
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 2px solid #667eea;
+            border-radius: 12px;
+            padding: 1rem 2.5rem;
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #667eea;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .score-badge {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            border-radius: 999px;
+            padding: 0.5rem 1.5rem;
+            font-weight: 700;
+            display: inline-block;
+            box-shadow: 0 4px 16px rgba(245, 87, 108, 0.4);
+        }
+
+        .glow {
+            box-shadow: 0 0 40px rgba(102, 126, 234, 0.4);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    
+    <!-- Start Screen -->
+    <div id="startScreen" class="fade-in max-w-4xl w-full">
+        <div class="text-center mb-12">
+            <h1 class="text-7xl font-bold mb-4 gradient-text">QuizMaster Pro</h1>
+            <p class="text-xl text-gray-300 mono">Test your knowledge. Beat the clock. Claim victory.</p>
+        </div>
+
+        <div class="gradient-border glow mb-8">
+            <div class="inner-content">
+                <h2 class="text-3xl font-bold text-white mb-6">Select Your Challenge</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="category-card" onclick="startQuiz('science')">
+                        <div class="text-5xl mb-4">🔬</div>
+                        <h3 class="text-2xl font-bold text-white mb-2">Science</h3>
+                        <p class="text-gray-400">Explore the mysteries of the universe</p>
+                    </div>
+                    <div class="category-card" onclick="startQuiz('history')">
+                        <div class="text-5xl mb-4">📜</div>
+                        <h3 class="text-2xl font-bold text-white mb-2">History</h3>
+                        <p class="text-gray-400">Journey through time and civilizations</p>
+                    </div>
+                    <div class="category-card" onclick="startQuiz('popculture')">
+                        <div class="text-5xl mb-4">🎬</div>
+                        <h3 class="text-2xl font-bold text-white mb-2">Pop Culture</h3>
+                        <p class="text-gray-400">Test your entertainment knowledge</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center text-gray-500 mono text-sm">
+            <p>10 Questions • 15 Seconds Each • Earn Points for Speed</p>
+        </div>
+    </div>
+
+    <!-- Quiz Screen -->
+    <div id="quizScreen" class="hidden max-w-4xl w-full">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-8">
+            <div class="flex items-center gap-4">
+                <div class="score-badge mono">
+                    <span class="text-white text-lg">SCORE: <span id="scoreDisplay">0</span></span>
+                </div>
+                <div class="text-gray-400 mono text-sm">
+                    Question <span id="questionNumber">1</span>/10
+                </div>
+            </div>
+            <div class="timer mono" id="timer">15</div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-bar mb-8">
+            <div class="progress-fill" id="progressBar" style="width: 10%"></div>
+        </div>
+
+        <!-- Question Card -->
+        <div class="gradient-border glow mb-8">
+            <div class="inner-content">
+                <div class="mb-8">
+                    <div class="text-sm mono text-purple-400 mb-3" id="categoryDisplay">CATEGORY</div>
+                    <h2 class="text-3xl font-bold text-white" id="questionText">Loading question...</h2>
+                </div>
+
+                <div class="space-y-3" id="optionsContainer">
+                    <!-- Options will be inserted here -->
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-between items-center">
+            <button class="btn-secondary" onclick="quitQuiz()">Quit Quiz</button>
+            <div class="text-gray-500 mono text-sm">Answer to proceed</div>
+        </div>
+    </div>
+
+    <!-- Results Screen -->
+    <div id="resultsScreen" class="hidden max-w-4xl w-full fade-in">
+        <div class="text-center mb-12">
+            <div class="text-6xl mb-4" id="resultEmoji">🎉</div>
+            <h1 class="text-6xl font-bold mb-4 gradient-text" id="resultTitle">Quiz Complete!</h1>
+            <p class="text-2xl text-gray-300 mono">Final Score: <span id="finalScore" class="text-white font-bold">0</span></p>
+        </div>
+
+        <div class="gradient-border glow mb-8">
+            <div class="inner-content">
+                <h2 class="text-3xl font-bold text-white mb-6">Performance Breakdown</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="stat-card text-center">
+                        <div class="text-4xl font-bold text-green-400 mb-2" id="correctCount">0</div>
+                        <div class="text-gray-400 mono text-sm">Correct Answers</div>
+                    </div>
+                    <div class="stat-card text-center">
+                        <div class="text-4xl font-bold text-red-400 mb-2" id="wrongCount">0</div>
+                        <div class="text-gray-400 mono text-sm">Wrong Answers</div>
+                    </div>
+                    <div class="stat-card text-center">
+                        <div class="text-4xl font-bold text-purple-400 mb-2" id="accuracyPercent">0%</div>
+                        <div class="text-gray-400 mono text-sm">Accuracy</div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-gray-400 mono text-sm">Your Score</span>
+                        <span class="text-gray-400 mono text-sm" id="maxScore">/ 1000</span>
+                    </div>
+                    <div class="progress-bar" style="height: 12px;">
+                        <div class="progress-fill" id="scoreProgressBar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex gap-4 justify-center">
+            <button class="btn-primary" onclick="location.reload()">Play Again</button>
+            <button class="btn-secondary" onclick="showStartScreen()">Change Category</button>
+        </div>
+    </div>
+
+    <script>
+        const quizData = {
+            science: [
+                {
+                    question: "What is the speed of light in vacuum?",
+                    options: ["299,792,458 m/s", "300,000,000 m/s", "280,000,000 m/s", "310,000,000 m/s"],
+                    correct: 0
+                },
+                {
+                    question: "Which element has the atomic number 79?",
+                    options: ["Silver", "Platinum", "Gold", "Mercury"],
+                    correct: 2
+                },
+                {
+                    question: "What is the largest organ in the human body?",
+                    options: ["Liver", "Brain", "Heart", "Skin"],
+                    correct: 3
+                },
+                {
+                    question: "How many planets in our solar system have rings?",
+                    options: ["One", "Two", "Three", "Four"],
+                    correct: 3
+                }
+            ],
+            history: [
+                {
+                    question: "In which year did World War II end?",
+                    options: ["1943", "1944", "1945", "1946"],
+                    correct: 2
+                },
+                {
+                    question: "Who was the first Emperor of Rome?",
+                    options: ["Julius Caesar", "Augustus", "Nero", "Caligula"],
+                    correct: 1
+                },
+                {
+                    question: "The Great Wall of China was primarily built during which dynasty?",
+                    options: ["Tang Dynasty", "Ming Dynasty", "Qing Dynasty", "Han Dynasty"],
+                    correct: 1
+                },
+                {
+                    question: "Which ancient wonder of the world still exists today?",
+                    options: ["Hanging Gardens of Babylon", "Colossus of Rhodes", "Great Pyramid of Giza", "Lighthouse of Alexandria"],
+                    correct: 2
+                }
+            ],
+            popculture: [
+                {
+                    question: "Which movie won the Academy Award for Best Picture in 2020?",
+                    options: ["1917", "Joker", "Parasite", "Once Upon a Time in Hollywood"],
+                    correct: 2
+                },
+                {
+                    question: "Who is known as the 'King of Pop'?",
+                    options: ["Elvis Presley", "Michael Jackson", "Prince", "David Bowie"],
+                    correct: 1
+                },
+                {
+                    question: "What year did the first iPhone release?",
+                    options: ["2005", "2006", "2007", "2008"],
+                    correct: 2
+                },
+                {
+                    question: "Which streaming service produced 'Stranger Things'?",
+                    options: ["Hulu", "Amazon Prime", "Netflix", "Disney+"],
+                    correct: 2
+                }
+            ]
+        };
+
+        const mixedQuestions = [
+            {
+                question: "What is the chemical symbol for gold?",
+                options: ["Go", "Gd", "Au", "Ag"],
+                correct: 2,
+                category: "Science"
+            },
+            {
+                question: "Who painted the Mona Lisa?",
+                options: ["Michelangelo", "Leonardo da Vinci", "Raphael", "Donatello"],
+                correct: 1,
+                category: "History"
+            },
+            {
+                question: "Which planet is known as the Red Planet?",
+                options: ["Venus", "Jupiter", "Mars", "Saturn"],
+                correct: 2,
+                category: "Science"
+            },
+            {
+                question: "What is the capital of Japan?",
+                options: ["Seoul", "Beijing", "Tokyo", "Bangkok"],
+                correct: 2,
+                category: "History"
+            },
+            {
+                question: "Who wrote 'Harry Potter'?",
+                options: ["J.R.R. Tolkien", "J.K. Rowling", "C.S. Lewis", "George R.R. Martin"],
+                correct: 1,
+                category: "Pop Culture"
+            },
+            {
+                question: "How many bones are in the adult human body?",
+                options: ["186", "206", "226", "246"],
+                correct: 1,
+                category: "Science"
+            }
+        ];
+
+        let currentCategory = '';
+        let questions = [];
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let timeLeft = 15;
+        let timerInterval = null;
+        let correctAnswers = 0;
+        let wrongAnswers = 0;
+
+        function startQuiz(category) {
+            currentCategory = category;
+            
+            const categoryQuestions = quizData[category] || [];
+            questions = [...categoryQuestions, ...mixedQuestions];
+            
+            questions.sort(() => Math.random() - 0.5);
+            questions = questions.slice(0, 10);
+
+            currentQuestionIndex = 0;
+            score = 0;
+            correctAnswers = 0;
+            wrongAnswers = 0;
+
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('quizScreen').classList.remove('hidden');
+
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            if (currentQuestionIndex >= questions.length) {
+                showResults();
+                return;
+            }
+
+            const question = questions[currentQuestionIndex];
+            
+            document.getElementById('questionNumber').textContent = currentQuestionIndex + 1;
+            document.getElementById('categoryDisplay').textContent = question.category || currentCategory.toUpperCase();
+            document.getElementById('questionText').textContent = question.question;
+            
+            const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
+            document.getElementById('progressBar').style.width = progress + '%';
+
+            const optionsContainer = document.getElementById('optionsContainer');
+            optionsContainer.innerHTML = '';
+
+            question.options.forEach((option, index) => {
+                const optionBtn = document.createElement('button');
+                optionBtn.className = 'option-btn slide-up';
+                optionBtn.style.animationDelay = `${index * 0.1}s`;
+                optionBtn.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="text-white text-lg">${option}</span>
+                        <span class="mono text-purple-400 text-sm">${String.fromCharCode(65 + index)}</span>
+                    </div>
+                `;
+                optionBtn.onclick = () => selectAnswer(index);
+                optionsContainer.appendChild(optionBtn);
+            });
+
+            startTimer();
+        }
+
+        function startTimer() {
+            timeLeft = 15;
+            updateTimerDisplay();
+            
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    timeExpired();
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const timerEl = document.getElementById('timer');
+            timerEl.textContent = timeLeft;
+
+            if (timeLeft <= 5) {
+                timerEl.classList.add('urgent');
+            } else {
+                timerEl.classList.remove('urgent');
+            }
+        }
+
+        function selectAnswer(selectedIndex) {
+            clearInterval(timerInterval);
+
+            const question = questions[currentQuestionIndex];
+            const isCorrect = selectedIndex === question.correct;
+
+            const optionBtns = document.querySelectorAll('.option-btn');
+            optionBtns.forEach((btn, index) => {
+                btn.classList.add('disabled');
+                if (index === question.correct) {
+                    btn.classList.add('correct');
+                } else if (index === selectedIndex && !isCorrect) {
+                    btn.classList.add('wrong');
+                }
+            });
+
+            if (isCorrect) {
+                correctAnswers++;
+                const basePoints = 50;
+                const timeBonus = timeLeft * 3;
+                const questionPoints = basePoints + timeBonus;
+                score += questionPoints;
+            } else {
+                wrongAnswers++;
+            }
+
+            updateScore();
+
+            setTimeout(() => {
+                currentQuestionIndex++;
+                loadQuestion();
+            }, 1500);
+        }
+
+        function timeExpired() {
+            wrongAnswers++;
+            const question = questions[currentQuestionIndex];
+            const optionBtns = document.querySelectorAll('.option-btn');
+            
+            optionBtns.forEach((btn, index) => {
+                btn.classList.add('disabled');
+                if (index === question.correct) {
+                    btn.classList.add('correct');
+                }
+            });
+
+            setTimeout(() => {
+                currentQuestionIndex++;
+                loadQuestion();
+            }, 1500);
+        }
+
+        function updateScore() {
+            document.getElementById('scoreDisplay').textContent = score;
+        }
+
+        function quitQuiz() {
+            if (confirm('Are you sure you want to quit? Your progress will be lost.')) {
+                showStartScreen();
+            }
+        }
+
+        function showStartScreen() {
+            clearInterval(timerInterval);
+            document.getElementById('quizScreen').classList.add('hidden');
+            document.getElementById('resultsScreen').classList.add('hidden');
+            document.getElementById('startScreen').classList.remove('hidden');
+        }
+
+        function showResults() {
+            clearInterval(timerInterval);
+            document.getElementById('quizScreen').classList.add('hidden');
+            document.getElementById('resultsScreen').classList.remove('hidden');
+
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('correctCount').textContent = correctAnswers;
+            document.getElementById('wrongCount').textContent = wrongAnswers;
+
+            const accuracy = questions.length > 0 ? Math.round((correctAnswers / questions.length) * 100) : 0;
+            document.getElementById('accuracyPercent').textContent = accuracy + '%';
+
+            const maxPossibleScore = 1000;
+            const scorePercentage = (score / maxPossibleScore) * 100;
+            document.getElementById('scoreProgressBar').style.width = scorePercentage + '%';
+            document.getElementById('maxScore').textContent = `/ ${maxPossibleScore}`;
+
+            let resultEmoji = '🎉';
+            let resultTitle = 'Quiz Complete!';
+
+            if (accuracy >= 90) {
+                resultEmoji = '🏆';
+                resultTitle = 'Outstanding!';
+            } else if (accuracy >= 70) {
+                resultEmoji = '🌟';
+                resultTitle = 'Great Job!';
+            } else if (accuracy >= 50) {
+                resultEmoji = '👍';
+                resultTitle = 'Good Effort!';
+            } else {
+                resultEmoji = '💪';
+                resultTitle = 'Keep Practicing!';
+            }
+
+            document.getElementById('resultEmoji').textContent = resultEmoji;
+            document.getElementById('resultTitle').textContent = resultTitle;
+        }
+    </script>
+</body>
+</html>
